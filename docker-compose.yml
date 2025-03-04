@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  hbase:
+    image: harisekhon/hbase
+    container_name: hbase
+    ports:
+      - "16020:16020"  # UI de HBase Master
+      - "9090:9090"    # Thrift API (para clientes)
+      - "2181:2181"    # ZooKeeper
+      - "8080:8080"    # API REST
+    environment:
+      - HBASE_ROOTDIR=/data/hbase
+    volumes:
+      - hbase_data:/data/hbase
+
+volumes:
+  hbase_data:
