@@ -5,14 +5,38 @@ services:
     image: harisekhon/hbase
     container_name: hbase
     ports:
-      - "16020:16020"  # UI de HBase Master
-      - "9090:9090"    # Thrift API (para clientes)
-      - "2181:2181"    # ZooKeeper
-      - "8080:8080"    # API REST
-    environment:
-      - HBASE_ROOTDIR=/data/hbase
-    volumes:
-      - hbase_data:/data/hbase
+      - "2181:2181"   # Zookeeper
+      - "8080:8080"   # HBase REST API
+      - "9090:9090"   # HBase Thrift API
+      - "9095:9095"
+      - "16010:16010" # HBase Master Web UI
+      - "16020:16020" # HBase RegionServer
+      - "16030:16030"
+    networks:
+      - hbase_network
+    healthcheck:  # 🔹 Agrega esto
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
-volumes:
-  hbase_data:
+  springboot-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: springboot-app
+    depends_on:
+      hbase:
+        condition: service_healthy  # 🔹 Espera a que HBase esté listo
+    environment:
+      - HBASE_ZOOKEEPER_QUORUM=hbase
+      - HBASE_ZOOKEEPER_PORT=2181
+    ports:
+      - "8081:8081"
+    networks:
+      - hbase_network
+    entrypoint: ["/wait-for-it.sh", "hbase:2181", "--", "java", "-jar", "app.jar"]
+
+networks:
+  hbase_network:
+    driver: bridge
